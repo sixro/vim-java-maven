@@ -1,0 +1,9 @@
+*java-maven.txt* Plugin for develop Java application when Maven is in use
+
+Author: Roberto Simoni <http://sixro.net>
+License: MIT License
+
+INTRODUCTION                                                        *java-maven*
+
+This plugin provides helpful configuration for Java development when Maven is
+in use.
