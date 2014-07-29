@@ -16,10 +16,12 @@ function! s:MvnTest()
   endif
 endfunction
 
+" Returns true if current buffer is a test
+" FIXME: currently it checks only if the filename ends with 'Test'. It is 
+" probably better to check if current buffer contains a @Test inside...
 function! s:isCurrentBufferATest()
-  " FIXME: it is probably better to check if current buffer contains a @Test
   let bufferName = expand("%:t:r")
-  let isATest = bufferName =~ "\.Test$"
+  let isATest = s:endsWith(bufferName, "Test")
 
   echom "[java-maven] [isCurrentBufferATest] returning " . isATest
   return isATest
@@ -36,6 +38,12 @@ function! s:ExecMvnTest(testName)
 
   echom "[java-maven] [MvnTest] executing " . shellCommand
   execute "!" . shellCommand
+endfunction
+
+" Returns true if specified 'text' ends with 'toFind'
+function! s:endsWith(text, toFind)
+  let pattern = "\." . a:toFind . "$"
+  return a:text =~ pattern
 endfunction
 
 command MvnTest call <SID>MvnTest()
