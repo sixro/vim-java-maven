@@ -31,7 +31,7 @@ endfunction
 "     mvn test [-Dtest=testName]
 " where the optional part is added only if testName is not empty
 function! s:ExecMvnTest(testName)
-  let shellCommand = "mvn test"
+  let shellCommand = "mvn -q test"
   if !empty(a:testName)
     let shellCommand .= " -Dtest=" . a:testName
   endif
