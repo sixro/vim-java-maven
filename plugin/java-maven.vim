@@ -6,6 +6,20 @@ if exists("g:loaded_javamaven") || &cp || v:version < 700
 endif
 let g:loaded_javamaven = 1
 
+autocmd filetype java :call <SID>MvnSetup()
+
+function! <SID>MvnSetup()
+  echom "[java-maven] [MvnSetup] Setting up Maven in Vim..."
+  let b:mvnPomDirectory = MvnPomDirectory()
+  if empty(b:mvnPomDirectory)
+    return
+  endif
+
+  let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
+  echom "[java-maven] [MvnSetup] b:mvnPomDirectory ..: " . b:mvnPomDirectory
+  echom "[java-maven] [MvnSetup] b:mvnPomFile .......: " . b:mvnPomFile
+endfunction
+
 " If current buffer is a test class runs only it, else run all tests
 function! s:MvnTest()
   if s:isCurrentBufferATest()
@@ -25,6 +39,24 @@ function! s:isCurrentBufferATest()
 
   echom "[java-maven] [isCurrentBufferATest] returning " . isATest
   return isATest
+endfunction
+
+function! MvnPomDirectory()
+  let currentDir = expand("%:p:h")
+  let pomFile = currentDir . "/pom.xml"
+  echom "[java-maven] [MvnPomRoot] buffer directory: " . currentDir . ", pom file: " . pomFile
+
+  while currentDir != "/" && !filereadable(pomFile)
+    let currentDir = fnamemodify(currentDir, ':h')
+    let pomFile = currentDir . "/pom.xml"
+    echom "[java-maven] [MvnPomRoot] buffer directory: " . currentDir . ", pom file: " . pomFile
+  endwhile
+
+  if filereadable(pomFile)
+    return currentDir
+  else
+    return ""
+  endif
 endfunction
 
 " Execute shell command:
