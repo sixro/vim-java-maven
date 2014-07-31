@@ -43,8 +43,12 @@ function! <SID>MvnSetup()
   endif
 
   let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory ..: " . b:mvnPomDirectory)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile .......: " . b:mvnPomFile)
+  let b:mvnSourceDirectory = g:readPom(b:mvnPomFile, "sourceDirectory", "${basedir}/src/main/java")
+  let b:mvnTestSourceDirectory = g:readPom(b:mvnPomFile, "testSourceDirectory", "${basedir}/src/test/java")
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
 endfunction
 
 " --  Mvn  ---------------------------------------------------------------------
@@ -124,6 +128,27 @@ function! <SID>ExecMvnTest(testName)
     let commandParams .= " -Dtest=" . a:testName
   endif
   execute ":Mvn " . commandParams
+endfunction
+
+" --  readPom  -----------------------------------------------------------------
+" Returns true if specified 'text' ends with 'toFind'
+function! g:readPom(pomFile, tag, defaultValue)
+  "let shellCmd = "grep '" . a:tag . "' " . a:pomFile . " | sed 's/\\s*<\\/*" . a:tag . ">//g'"
+  let shellCmd = "grep '" . a:tag . "' " . a:pomFile
+  call <SID>debug("[java-maven] [readPom] shellCmd = " . shellCmd)
+  let text = system(shellCmd)
+  if empty(text)
+    let text = a:defaultValue
+  else
+    call <SID>debug("[java-maven] [readPom] initial = " . text)
+    let text = substitute(text, ".*<" . a:tag . ">", "", "")
+    call <SID>debug("[java-maven] [readPom] then = " . text)
+    let text = substitute(text, "</" . a:tag . ">.*", "", "")
+    call <SID>debug("[java-maven] [readPom] then2 = " . text)
+  endif
+  let text = substitute(text, "${basedir}/", "", "")
+  call <SID>debug("[java-maven] [readPom] returning " . text)
+  return text
 endfunction
 
 " --  endsWith  ----------------------------------------------------------------
