@@ -21,7 +21,13 @@ autocmd filetype java :call <SID>MvnSetup()
 " ==  Commands  ================================================================
 "
 command! -nargs=* Mvn call <SID>Mvn(<f-args>)
-command MvnTest call <SID>MvnTest()
+command! MvnTest call <SID>MvnTest()
+
+" --  alternate.vim  -----------------------------------------------------------
+" Require open.vim plugin too
+command! A  Open(alternate#FindAlternate())
+command! AV OpenVertical(alternate#FindAlternate())
+command! AS OpenHorizontal(alternate#FindAlternate())
 
 
 " ==  Script function(s)  ======================================================
@@ -49,6 +55,13 @@ function! <SID>MvnSetup()
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
+
+  " Configure alternate.vim plugin
+  let b:alternate_source_dirs = b:mvnSourceDirectory
+  let b:alternate_test_token = "Test"
+  let b:alternate_test_token_location = "$"
+  let b:alternate_test_dirs = b:mvnTestSourceDirectory
+  let b:alternate_enabled = 1
 endfunction
 
 " --  Mvn  ---------------------------------------------------------------------
