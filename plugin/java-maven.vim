@@ -121,7 +121,7 @@ endfunction
 function! <SID>ExecMvnTest(testName)
   let commandParams = "-q test -Dsurefire.useFile=false"
   if !empty(a:testName)
-    let commandParams .= "-Dtest=" . a:testName
+    let commandParams .= " -Dtest=" . a:testName
   endif
   execute ":Mvn " . commandParams
 endfunction
