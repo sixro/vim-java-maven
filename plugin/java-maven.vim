@@ -17,6 +17,17 @@ endif
 " Setup Maven when a java file is opened
 autocmd filetype java :call <SID>MvnSetup()
 
+" --  javacomplete  ------------------------------------------------------------
+autocmd Filetype java setlocal omnifunc=javacomplete#Complete 
+autocmd Filetype java setlocal completefunc=javacomplete#CompleteParamsInfo 
+
+
+" ==  Mappings  ================================================================
+
+" --  javacomplete  ------------------------------------------------------------
+inoremap <buffer> <C-X><C-U> <C-X><C-U><C-P>
+inoremap <buffer> <C-S-Space> <C-X><C-U><C-P> 
+
 
 " ==  Commands  ================================================================
 "
