@@ -67,6 +67,9 @@ function! <SID>MvnSetup()
   call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
 
+  " Configure javacomplete.vim
+  let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
+
   " Configure alternate.vim plugin
   let b:alternate_source_dirs = b:mvnSourceDirectory
   let b:alternate_test_token = "Test"
@@ -131,6 +134,20 @@ function! <SID>MvnTest()
   endif
 endfunction
 
+" --  MvnDependencyBuildClasspath  ---------------------------------------------
+" Returns the build classpath of specified Maven POM.
+" 
+" Internally it calls the dependency maven plugin with option build-classpath.
+" FIXME It needs to use a caching system. E.g. Put the classpath in a file
+"       in .cache/vim using the groupId-artifactId of the POM. If the caching
+"       file is more recent than the POM, the cached content is still valid
+"       for every buffer
+function! <SID>MvnDependencyBuildClasspath(pomFile)
+  let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
+  call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
+  return system(shellCommand)
+endfunction
+
 " --  isCurrentBufferATest  ----------------------------------------------------
 " Returns true if current buffer is a test
 " TODO currently it checks only if the filename ends with 'Test'. It is probably better to check if current buffer contains a @Test inside...
@@ -173,6 +190,14 @@ function! g:readPom(pomFile, tag, defaultValue)
   let text = substitute(text, "${basedir}/", "", "")
   call <SID>debug("[java-maven] [readPom] returning " . text)
   return text
+endfunction
+
+" --  mvnCommand  --------------------------------------------------------------
+" Returns the mvn command that should be launched using specified POM file
+function! <SID>mvnCommand(pomFile)
+  let mvnCommand = "mvn -f " . a:pomFile
+  call <SID>debug("[java-maven] [mvnCommand] returning '" . mvnCommand . "'")
+  return mvnCommand
 endfunction
 
 " --  endsWith  ----------------------------------------------------------------
