@@ -8,7 +8,10 @@ let g:loaded_javamaven = 1
 
 " ==  Globals  =================================================================
 if !exists("g:javamaven_debug")
-  let g:javamaven_debug = 0
+  let g:javamaven_debug = 1
+endif
+if !exists("g:javamaven_cache")
+  let g:javamaven_cache = $HOME . "/.cache/vim/javamaven"
 endif
 
 
@@ -60,10 +63,16 @@ function! <SID>MvnSetup()
   endif
 
   let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
+  let b:mvnGroupId = g:xpath(b:mvnPomFile, "//project/groupId/text()", "project")
+  let b:mvnArtifactId = g:xpath(b:mvnPomFile, "//project/artifactId/text()", "project")
+  let b:mvnVersion = g:xpath(b:mvnPomFile, "//project/version/text()", "project")
   let b:mvnSourceDirectory = g:readPom(b:mvnPomFile, "sourceDirectory", "${basedir}/src/main/java")
   let b:mvnTestSourceDirectory = g:readPom(b:mvnPomFile, "testSourceDirectory", "${basedir}/src/test/java")
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnGroupId ..............: " . b:mvnGroupId)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnArtifactId ...........: " . b:mvnArtifactId)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnVersion ..............: " . b:mvnVersion)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
 
@@ -143,9 +152,17 @@ endfunction
 "       file is more recent than the POM, the cached content is still valid
 "       for every buffer
 function! <SID>MvnDependencyBuildClasspath(pomFile)
-  let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
-  call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
-  return system(shellCommand)
+  let projectID = <SID>evaluateProjectID(a:pomFile)
+  let classpath = <SID>cacheRead(g:javamaven_cache, projectID, "classpath", getftime(a:pomFile))
+  if empty(classpath)
+    let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
+    call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
+    let classpath = system(shellCommand)
+
+    call <SID>cacheWrite(g:javamaven_cache, projectID, "classpath", classpath)
+  endif
+
+  return classpath
 endfunction
 
 " --  isCurrentBufferATest  ----------------------------------------------------
@@ -171,8 +188,61 @@ function! <SID>ExecMvnTest(testName)
   execute ":Mvn " . commandParams
 endfunction
 
+" --  evaluateProjectID  -------------------------------------------------------
+" Returns the projectID of specified POM
+"
+" Internally it gets groupId, artifactId and version and joins them with '-'.
+" E.g.
+"     <groupId>github</groupId>
+"     <artifactId>myproj</artifactId>
+"     <version>1.0.0-SNAPSHOT</version>
+"  becomes:
+"     github-myproj-1.0.0-SNAPSHOT
+" I was in doubt to use also the version, but if you are working on multiple
+" branches, probably the unique way to know it is the different version...
+function! <SID>evaluateProjectID(pomFile)
+  let mvnGroupId = g:xpath(a:pomFile, "//project/groupId/text()", "project")
+  let mvnArtifactId = g:xpath(a:pomFile, "//project/artifactId/text()", "project")
+  let mvnVersion = g:xpath(a:pomFile, "//project/version/text()", "project")
+  return join([ mvnGroupId, mvnArtifactId, mvnVersion ], '.')
+endfunction
+
+" --  cacheRead  ---------------------------------------------------------------
+" FIXME
+function! <SID>cacheRead(cacheDirectory, projectID, property, timestampOfSource)
+  let cacheFile = a:cacheDirectory . "/" . a:projectID . "/" . a:property
+  call <SID>debug("[java-maven] [cacheRead] cacheFile = " . cacheFile)
+  if !filereadable(cacheFile)
+    call <SID>debug("[java-maven] [cacheRead] not found or not readable")
+    return ""
+  endif
+  " Check if the cache file is older than source...
+  if (getftime(cacheFile) < a:timestampOfSource)
+    call <SID>debug("[java-maven] [cacheRead] too old")
+    return ""
+  endif
+
+  let cachedValue = join(readfile(cacheFile), "")
+  call <SID>debug("[java-maven] [cacheRead] returning '" . cachedValue . "'")
+  return cachedValue
+endfunction
+
+" --  cacheWrite  --------------------------------------------------------------
+" FIXME
+function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
+  let cacheFileParent = a:cacheDirectory . "/" . a:projectID
+  call mkdir(cacheFileParent, "p")
+
+  let cacheFile = cacheFileParent . "/" . a:property
+  call <SID>debug("[java-maven] [cacheWrite] cacheFile = " . cacheFile)
+
+  call writefile([ a:value ], cacheFile)
+  call <SID>debug("[java-maven] [cacheWrite] value '" . a:value . "' cached in " . cacheFile)
+endfunction
+
 " --  readPom  -----------------------------------------------------------------
 " Returns true if specified 'text' ends with 'toFind'
+" DEPRECATED: Use the g:xpath function!!!
 function! g:readPom(pomFile, tag, defaultValue)
   "let shellCmd = "grep '" . a:tag . "' " . a:pomFile . " | sed 's/\\s*<\\/*" . a:tag . ">//g'"
   let shellCmd = "grep '" . a:tag . "' " . a:pomFile
@@ -190,6 +260,25 @@ function! g:readPom(pomFile, tag, defaultValue)
   let text = substitute(text, "${basedir}/", "", "")
   call <SID>debug("[java-maven] [readPom] returning " . text)
   return text
+endfunction
+
+function! g:xpath(pomFile, xpath, ...)
+  call <SID>debug("[java-maven] [xpath] executing xpath '" . a:xpath . "' on file " . a:pomFile)
+  let internalPomFile = a:pomFile
+  if (a:0 > 0)
+    let internalPomFile = tempname()
+    " remove namespace from specified tag (a:1)
+    let shellCommand = "sed 's/<" . a:1 . " .*>/<" . a:1 . ">/g' " . a:pomFile . " > " . internalPomFile
+    call <SID>debug("[java-maven] [xpath] executing command '" . shellCommand . "' before xpath...")
+
+    call system(shellCommand)
+  endif
+
+  let xpathCmd = "xmllint --xpath \"" . a:xpath . "\" " . internalPomFile
+  call <SID>debug("[java-maven] [xpath] executing command '" . xpathCmd . "' to retrieve xpath...")
+  let value = system(xpathCmd)
+  call <SID>debug("[java-maven] [xpath] returning '" . value . "'")
+  return value
 endfunction
 
 " --  mvnCommand  --------------------------------------------------------------
