@@ -8,7 +8,7 @@ let g:loaded_javamaven = 1
 
 " ==  Globals  =================================================================
 if !exists("g:javamaven_debug")
-  let g:javamaven_debug = 1
+  let g:javamaven_debug = 0
 endif
 if !exists("g:javamaven_cache")
   let g:javamaven_cache = $HOME . "/.cache/vim/javamaven"
