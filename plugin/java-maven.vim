@@ -66,8 +66,8 @@ function! <SID>MvnSetup()
   let b:mvnGroupId = g:xpath(b:mvnPomFile, "//project/groupId/text()", "project")
   let b:mvnArtifactId = g:xpath(b:mvnPomFile, "//project/artifactId/text()", "project")
   let b:mvnVersion = g:xpath(b:mvnPomFile, "//project/version/text()", "project")
-  let b:mvnSourceDirectory = g:readPom(b:mvnPomFile, "sourceDirectory", "${basedir}/src/main/java")
-  let b:mvnTestSourceDirectory = g:readPom(b:mvnPomFile, "testSourceDirectory", "${basedir}/src/test/java")
+  let b:mvnSourceDirectory = g:xpath(b:mvnPomFile, "sourceDirectory", "project", "${basedir}/src/main/java")
+  let b:mvnTestSourceDirectory = g:xpath(b:mvnPomFile, "testSourceDirectory", "project", "${basedir}/src/test/java")
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnGroupId ..............: " . b:mvnGroupId)
@@ -208,7 +208,10 @@ function! <SID>evaluateProjectID(pomFile)
 endfunction
 
 " --  cacheRead  ---------------------------------------------------------------
-" FIXME
+" Returns specified property from cache of specified projectID
+"
+" It uses file to contains property value, so we can use filesystem to check
+" update datetime and check the validity with specified timestampOfSource
 function! <SID>cacheRead(cacheDirectory, projectID, property, timestampOfSource)
   let cacheFile = a:cacheDirectory . "/" . a:projectID . "/" . a:property
   call <SID>debug("[java-maven] [cacheRead] cacheFile = " . cacheFile)
@@ -228,10 +231,12 @@ function! <SID>cacheRead(cacheDirectory, projectID, property, timestampOfSource)
 endfunction
 
 " --  cacheWrite  --------------------------------------------------------------
-" FIXME
+" Write specified property value in cache of specified projectID
 function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
   let cacheFileParent = a:cacheDirectory . "/" . a:projectID
-  call mkdir(cacheFileParent, "p")
+  if ! isdirectory(cacheFileParent)
+    call mkdir(cacheFileParent, "p")
+  endif
 
   let cacheFile = cacheFileParent . "/" . a:property
   call <SID>debug("[java-maven] [cacheWrite] cacheFile = " . cacheFile)
@@ -240,43 +245,41 @@ function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
   call <SID>debug("[java-maven] [cacheWrite] value '" . a:value . "' cached in " . cacheFile)
 endfunction
 
-" --  readPom  -----------------------------------------------------------------
-" Returns true if specified 'text' ends with 'toFind'
-" DEPRECATED: Use the g:xpath function!!!
-function! g:readPom(pomFile, tag, defaultValue)
-  "let shellCmd = "grep '" . a:tag . "' " . a:pomFile . " | sed 's/\\s*<\\/*" . a:tag . ">//g'"
-  let shellCmd = "grep '" . a:tag . "' " . a:pomFile
-  call <SID>debug("[java-maven] [readPom] shellCmd = " . shellCmd)
-  let text = system(shellCmd)
-  if empty(text)
-    let text = a:defaultValue
-  else
-    call <SID>debug("[java-maven] [readPom] initial = " . text)
-    let text = substitute(text, ".*<" . a:tag . ">", "", "")
-    call <SID>debug("[java-maven] [readPom] then = " . text)
-    let text = substitute(text, "</" . a:tag . ">.*", "", "")
-    call <SID>debug("[java-maven] [readPom] then2 = " . text)
-  endif
-  let text = substitute(text, "${basedir}/", "", "")
-  call <SID>debug("[java-maven] [readPom] returning " . text)
-  return text
-endfunction
-
-function! g:xpath(pomFile, xpath, ...)
-  call <SID>debug("[java-maven] [xpath] executing xpath '" . a:xpath . "' on file " . a:pomFile)
-  let internalPomFile = a:pomFile
+" --  xpath  -------------------------------------------------------------------
+" Returns the specified xpath on specified xmlFile.
+"
+" Accept 2 additional parameters:
+"    * 3rd parameter ...: can be a name of the tag containing a namespace
+"                         definition. xmllint gives error when xml contains
+"                         namespaces and the fast way I found is to clean
+"                         the specified tag. E.g. in Maven POM, the
+"                            <project xmlns=...>
+"                         is replace with:
+"                            <project>
+"                         In this way, xmllint runs perfectly
+"    * 4th parameter ...: the default value to return when no value is found
+"                         in XML
+function! g:xpath(xmlFile, xpath, ...)
+  call <SID>debug("[java-maven] [xpath] executing xpath '" . a:xpath . "' on file " . a:xmlFile)
+  let tmpXml = a:xmlFile
   if (a:0 > 0)
-    let internalPomFile = tempname()
+    let tmpXml = tempname()
     " remove namespace from specified tag (a:1)
-    let shellCommand = "sed 's/<" . a:1 . " .*>/<" . a:1 . ">/g' " . a:pomFile . " > " . internalPomFile
+    let shellCommand = "sed 's/<" . a:1 . " .*>/<" . a:1 . ">/g' " . a:xmlFile . " > " . tmpXml
     call <SID>debug("[java-maven] [xpath] executing command '" . shellCommand . "' before xpath...")
 
     call system(shellCommand)
   endif
 
-  let xpathCmd = "xmllint --xpath \"" . a:xpath . "\" " . internalPomFile
+  let xpathCmd = "xmllint --xpath \"" . a:xpath . "\" " . tmpXml
   call <SID>debug("[java-maven] [xpath] executing command '" . xpathCmd . "' to retrieve xpath...")
+  
   let value = system(xpathCmd)
+  " When xmllint does not find anything and a default value has been provided...
+  if value =~ "^XPath set is empty.*" && a:0 > 1
+    let value = a:2
+  endif
+
   call <SID>debug("[java-maven] [xpath] returning '" . value . "'")
   return value
 endfunction
