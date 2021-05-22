@@ -63,11 +63,11 @@ function! <SID>MvnSetup()
   endif
 
   let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
-  let b:mvnGroupId = g:xpath(b:mvnPomFile, "//project/groupId/text()", "project")
-  let b:mvnArtifactId = g:xpath(b:mvnPomFile, "//project/artifactId/text()", "project")
-  let b:mvnVersion = g:xpath(b:mvnPomFile, "//project/version/text()", "project")
-  let b:mvnSourceDirectory = g:xpath(b:mvnPomFile, "sourceDirectory", "project", "${basedir}/src/main/java")
-  let b:mvnTestSourceDirectory = g:xpath(b:mvnPomFile, "testSourceDirectory", "project", "${basedir}/src/test/java")
+  let b:mvnGroupId = s:xpath(b:mvnPomFile, "//project/groupId/text()", "project")
+  let b:mvnArtifactId = s:xpath(b:mvnPomFile, "//project/artifactId/text()", "project")
+  let b:mvnVersion = s:xpath(b:mvnPomFile, "//project/version/text()", "project")
+  let b:mvnSourceDirectory = s:xpath(b:mvnPomFile, "sourceDirectory", "project", "${basedir}/src/main/java")
+  let b:mvnTestSourceDirectory = s:xpath(b:mvnPomFile, "testSourceDirectory", "project", "${basedir}/src/test/java")
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnGroupId ..............: " . b:mvnGroupId)
@@ -201,9 +201,9 @@ endfunction
 " I was in doubt to use also the version, but if you are working on multiple
 " branches, probably the unique way to know it is the different version...
 function! <SID>evaluateProjectID(pomFile)
-  let mvnGroupId = g:xpath(a:pomFile, "//project/groupId/text()", "project")
-  let mvnArtifactId = g:xpath(a:pomFile, "//project/artifactId/text()", "project")
-  let mvnVersion = g:xpath(a:pomFile, "//project/version/text()", "project")
+  let mvnGroupId = s:xpath(a:pomFile, "//project/groupId/text()", "project")
+  let mvnArtifactId = s:xpath(a:pomFile, "//project/artifactId/text()", "project")
+  let mvnVersion = s:xpath(a:pomFile, "//project/version/text()", "project")
   return join([ mvnGroupId, mvnArtifactId, mvnVersion ], '.')
 endfunction
 
@@ -259,7 +259,7 @@ endfunction
 "                         In this way, xmllint runs perfectly
 "    * 4th parameter ...: the default value to return when no value is found
 "                         in XML
-function! g:xpath(xmlFile, xpath, ...)
+function! s:xpath(xmlFile, xpath, ...)
   call <SID>debug("[java-maven] [xpath] executing xpath '" . a:xpath . "' on file " . a:xmlFile)
   let tmpXml = a:xmlFile
   if (a:0 > 0)
