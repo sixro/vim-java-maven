@@ -170,7 +170,7 @@ endfunction
 " TODO currently it checks only if the filename ends with 'Test'. It is probably better to check if current buffer contains a @Test inside...
 function! <SID>isCurrentBufferATest()
   let bufferName = expand("%:t:r")
-  let isATest = <SID>endsWith(bufferName, "Test")
+  let isATest = <SID>endsWith(bufferName, "Test") || <SID>endsWith(bufferName, "IT")
 
   call <SID>debug("[java-maven] [isCurrentBufferATest] returning " . isATest)
   return isATest
@@ -230,6 +230,7 @@ function! <SID>cacheRead(cacheDirectory, projectID, property, timestampOfSource)
   return cachedValue
 endfunction
 
+
 " --  cacheWrite  --------------------------------------------------------------
 " Write specified property value in cache of specified projectID
 function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
@@ -244,6 +245,7 @@ function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
   call writefile([ a:value ], cacheFile)
   call <SID>debug("[java-maven] [cacheWrite] value '" . a:value . "' cached in " . cacheFile)
 endfunction
+
 
 " --  getParam  ----------------------------------------------------------------
 " Retrieve a specific parameter from pom.xml using the maven-help-plugin.
@@ -265,45 +267,6 @@ function! s:getParam(xmlFile, param, ...)
 endfunction
 
 
-" --  xpath  -------------------------------------------------------------------
-" Returns the specified xpath on specified xmlFile.
-"
-" Accept 2 additional parameters:
-"    * 3rd parameter ...: can be a name of the tag containing a namespace
-"                         definition. xmllint gives error when xml contains
-"                         namespaces and the fast way I found is to clean
-"                         the specified tag. E.g. in Maven POM, the
-"                            <project xmlns=...>
-"                         is replace with:
-"                            <project>
-"                         In this way, xmllint runs perfectly
-"    * 4th parameter ...: the default value to return when no value is found
-"                         in XML
-function! s:xpath(xmlFile, xpath, ...)
-  call <SID>debug("[java-maven] [xpath] executing xpath '" . a:xpath . "' on file " . a:xmlFile)
-  let tmpXml = a:xmlFile
-  if (a:0 > 0)
-    let tmpXml = tempname()
-    " remove namespace from specified tag (a:1)
-    let shellCommand = "sed 's/<" . a:1 . " .*>/<" . a:1 . ">/g' " . a:xmlFile . " > " . tmpXml
-    call <SID>debug("[java-maven] [xpath] executing command '" . shellCommand . "' before xpath...")
-
-    call system(shellCommand)
-  endif
-
-  let xpathCmd = "xmllint --xpath \"" . a:xpath . "\" " . tmpXml
-  call <SID>debug("[java-maven] [xpath] executing command '" . xpathCmd . "' to retrieve xpath...")
-  
-  let value = system(xpathCmd)
-  " When xmllint does not find anything and a default value has been provided...
-  if value =~ "^XPath set is empty.*" && a:0 > 1
-    let value = a:2
-  endif
-
-  call <SID>debug("[java-maven] [xpath] returning '" . value . "'")
-  return value
-endfunction
-
 " --  mvnCommand  --------------------------------------------------------------
 " Returns the mvn command that should be launched using specified POM file
 function! <SID>mvnCommand(pomFile)
@@ -312,12 +275,14 @@ function! <SID>mvnCommand(pomFile)
   return mvnCommand
 endfunction
 
+
 " --  endsWith  ----------------------------------------------------------------
 " Returns true if specified 'text' ends with 'toFind'
 function! <SID>endsWith(text, toFind)
   let pattern = "\." . a:toFind . "$"
   return a:text =~ pattern
 endfunction
+
 
 " --  debug  -------------------------------------------------------------------
 " Returns true if specified 'text' ends with 'toFind'
