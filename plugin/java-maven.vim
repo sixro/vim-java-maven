@@ -252,10 +252,9 @@ endfunction
 "    * 3rd parameter ...: the default value to return when no value is found
 function! s:getParam(xmlFile, param, ...)
   call <SID>debug("[java-maven] [getParam] Retrieving param '" . a:param . "' from POM file " . a:xmlFile)
-  let tmpXml = tempname()
-  let shellCommand = "mvn help:evaluate -Dexpression=" . a:param . " -q -DforceStdout > " . tmpXml
+  let shellCommand = "mvn help:evaluate -Dexpression=" . a:param . " -q -DforceStdout"
   call <SID>debug("[java-maven] [getParam] executing command '" . shellCommand . "' ...")
-  call system(shellCommand)
+  let value = system(shellCommand)
 
   if value =~ "^null object or invalid expression" && a:0 > 1
     let value = a:2
