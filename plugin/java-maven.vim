@@ -63,11 +63,11 @@ function! <SID>MvnSetup()
   endif
 
   let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
-  let b:mvnGroupId = s:xpath(b:mvnPomFile, "//project/groupId/text()", "project")
-  let b:mvnArtifactId = s:xpath(b:mvnPomFile, "//project/artifactId/text()", "project")
-  let b:mvnVersion = s:xpath(b:mvnPomFile, "//project/version/text()", "project")
-  let b:mvnSourceDirectory = s:xpath(b:mvnPomFile, "sourceDirectory", "project", "${basedir}/src/main/java")
-  let b:mvnTestSourceDirectory = s:xpath(b:mvnPomFile, "testSourceDirectory", "project", "${basedir}/src/test/java")
+  let b:mvnGroupId = s:getParam(b:mvnPomFile, "project.groupId")
+  let b:mvnArtifactId = s:getParam(b:mvnPomFile, "project.artifactId")
+  let b:mvnVersion = s:getParam(b:mvnPomFile, "project.version")
+  let b:mvnSourceDirectory = s:getParam(b:mvnPomFile, "project.build.sourceDirectory", "${basedir}/src/main/java")
+  let b:mvnTestSourceDirectory = s:getParam(b:mvnPomFile, "project.build.testSourceDirectory", "${basedir}/src/test/java")
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnGroupId ..............: " . b:mvnGroupId)
@@ -201,9 +201,9 @@ endfunction
 " I was in doubt to use also the version, but if you are working on multiple
 " branches, probably the unique way to know it is the different version...
 function! <SID>evaluateProjectID(pomFile)
-  let mvnGroupId = s:xpath(a:pomFile, "//project/groupId/text()", "project")
-  let mvnArtifactId = s:xpath(a:pomFile, "//project/artifactId/text()", "project")
-  let mvnVersion = s:xpath(a:pomFile, "//project/version/text()", "project")
+  let mvnGroupId = s:getParam(b:mvnPomFile, "project.groupId")
+  let mvnArtifactId = s:getParam(b:mvnPomFile, "project.artifactId")
+  let mvnVersion = s:getParam(b:mvnPomFile, "project.version")
   return join([ mvnGroupId, mvnArtifactId, mvnVersion ], '.')
 endfunction
 
@@ -244,6 +244,27 @@ function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
   call writefile([ a:value ], cacheFile)
   call <SID>debug("[java-maven] [cacheWrite] value '" . a:value . "' cached in " . cacheFile)
 endfunction
+
+" --  getParam  ----------------------------------------------------------------
+" Retrieve a specific parameter from pom.xml using the maven-help-plugin.
+"
+" Accept 1 additional parameters:
+"    * 3rd parameter ...: the default value to return when no value is found
+function! s:getParam(xmlFile, param, ...)
+  call <SID>debug("[java-maven] [getParam] Retrieving param '" . a:param . "' from POM file " . a:xmlFile)
+  let tmpXml = tempname()
+  let shellCommand = "mvn help:evaluate -Dexpression=" . a:param . " -q -DforceStdout > " . tmpXml
+  call <SID>debug("[java-maven] [getParam] executing command '" . shellCommand . "' ...")
+  call system(shellCommand)
+
+  if value =~ "^null object or invalid expression" && a:0 > 1
+    let value = a:2
+  endif
+
+  call <SID>debug("[java-maven] [getParam] returning '" . value . "'")
+  return value
+endfunction
+
 
 " --  xpath  -------------------------------------------------------------------
 " Returns the specified xpath on specified xmlFile.
