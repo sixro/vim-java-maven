@@ -75,17 +75,16 @@ function! <SID>MvnSetup()
     call <SID>debug("[java-maven] [MvnSetup] unable to find cache file (" . b:cacheFilepath . "). Collecting all properties and generating them...")
     let tmp = system("mvn help:effective-pom -Doutput=/tmp/pom-temp.xml")
     let b:mvnSourceDirectory = system("xmllint -xpath '//project/build/sourceDirectory/text()' /tmp/pom-temp2.xml")
-    let b:mvnSourceDirectory = substitute(b:mvnSourceDirectory, b:mvnPomDirectory . "/", "", "")
-    " Remove annoying ^@ character at the end
-    let b:mvnSourceDirectory = substitute(b:mvnSourceDirectory, ".$", "", "")
+    let b:mvnSourceDirectory = <SID>asLocal(b:mvnSourceDirectory, b:mvnPomDirectory)
     let b:mvnTestSourceDirectory = system("xmllint -xpath '//project/build/testSourceDirectory/text()' /tmp/pom-temp2.xml")
-    let b:mvnTestSourceDirectory = substitute(b:mvnTestSourceDirectory, b:mvnPomDirectory . "/", "", "")
-    " Remove annoying ^@ character at the end
-    let b:mvnTestSourceDirectory = substitute(b:mvnTestSourceDirectory, ".$", "", "")
+    let b:mvnTestSourceDirectory = <SID>asLocal(b:mvnTestSourceDirectory, b:mvnPomDirectory)
+    let b:mvnOutputDirectory = system("xmllint -xpath '//project/build/outputDirectory/text()' /tmp/pom-temp2.xml")
+    let b:mvnOutputDirectory = <SID>asLocal(b:mvnOutputDirectory, b:mvnPomDirectory)
 
     " Configure javacomplete.vim
     let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
     let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
+    let b:classpath = b:classpath . ":" . b:mvnOutputDirectory
 
     if ! isdirectory(g:javamaven_cache)
       call mkdir(g:javamaven_cache, "p")
@@ -94,6 +93,7 @@ function! <SID>MvnSetup()
     call writefile([ "let b:mvnPomFile = \"" . b:mvnPomFile . "\"" ], b:cacheFilepath, "a")
     call writefile([ "let b:mvnSourceDirectory = \"" . b:mvnSourceDirectory . "\"" ], b:cacheFilepath, "a")
     call writefile([ "let b:mvnTestSourceDirectory = \"" . b:mvnTestSourceDirectory . "\"" ], b:cacheFilepath, "a")
+    call writefile([ "let b:mvnOutputDirectory = \"" . b:mvnOutputDirectory . "\"" ], b:cacheFilepath, "a")
     call writefile([ "let b:classpath = \"" . b:classpath . "\"" ], b:cacheFilepath, "a")
   endif
 
@@ -101,6 +101,7 @@ function! <SID>MvnSetup()
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
+  call <SID>debug("[java-maven] [MvnSetup] b:mvnOutputDirectory ......: " . b:mvnOutputDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:classpath ...............: " . b:classpath)
 
   " Configure alternate.vim plugin
@@ -109,6 +110,9 @@ function! <SID>MvnSetup()
   let b:alternate_test_token_location = "$"
   let b:alternate_test_dirs = b:mvnTestSourceDirectory
   let b:alternate_enabled = 1
+
+  " Configure make in vim
+  "setlocal makeprg="!javac -cp " . b:classpath . " -d  " . b:mvnOutputDirectory . " " . @%
 endfunction
 
 " --  Mvn  ---------------------------------------------------------------------
@@ -225,10 +229,28 @@ endfunction
 
 
 " --  javaCommand  -------------------------------------------------------------
-" Returns the java command that should be launched
+" Returns the javac command that should be launched
 function! <SID>javaCommand(classpath, objectName)
   let cmd = "java -cp \"" . a:classpath . "\" " . objectName
   call <SID>debug("[java-maven] [javaCommand] returning '" . cmd . "'")
+  return cmd
+endfunction
+
+
+" --  javaCommand  -------------------------------------------------------------
+" Returns the java command that should be launched
+function! <SID>javaCommand(classpath, objectName)
+  let cmd = "java -cp \"" . a:classpath . "\" " . a:objectName
+  call <SID>debug("[java-maven] [javaCommand] returning '" . cmd . "'")
+  return cmd
+endfunction
+
+
+" --  javacCommand  -------------------------------------------------------------
+" Returns the javac command executed with specified classpath and fileName
+function! <SID>javacCommand(classpath, destDir, fileName)
+  let cmd = "javac -cp \"" . a:classpath . "\" -d " . a:destDir . " " . a:fileName
+  call <SID>debug("[java-maven] [javacCommand] returning '" . cmd . "'")
   return cmd
 endfunction
 
@@ -239,6 +261,17 @@ function! <SID>mvnCommand(pomFile)
   let mvnCommand = "mvn -f " . a:pomFile
   call <SID>debug("[java-maven] [mvnCommand] returning '" . mvnCommand . "'")
   return mvnCommand
+endfunction
+
+
+" --  asLocal  -----------------------------------------------------------------
+" Returns the specified directory as if it is local to the specified
+" pomDirectory
+function! <SID>asLocal(dir, pomDir)
+  let tmp = substitute(a:dir, a:pomDir . "/", "", "")
+  " Remove annoying ^@ character at the end
+  let tmp = substitute(tmp, ".$", "", "")
+  return tmp
 endfunction
 
 
