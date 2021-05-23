@@ -14,7 +14,7 @@
 This is a vim plugin I am trying to create.  
 It has an old story and I do not maintain it actively.  
 The reason is that I cannot have the same experience I have at the moment with others IDE.  
-Anyway I live it here as a learning process for someone who wants to understand how I made 
+Anyway I leave it here as a learning process for someone who wants to understand how I made 
 something (DISCLAIMER: probably I made it wrong :D).
 
 **WARNING**: it is slow, because it needs to execute some commands to retrieve data from `pom.xml`
