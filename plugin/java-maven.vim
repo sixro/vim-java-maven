@@ -36,7 +36,6 @@ inoremap <buffer> <C-S-Space> <C-X><C-U><C-P>
 "
 command! -nargs=* Mvn call <SID>Mvn(<f-args>)
 command! MvnTest call <SID>MvnTest()
-command! MvnTmp call <SID>resolveCacheFileName()
 
 " --  alternate.vim  -----------------------------------------------------------
 " Require open.vim plugin too
@@ -63,22 +62,33 @@ function! <SID>MvnSetup()
     return
   endif
 
-  let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
-  let b:mvnGroupId = s:getParam(b:mvnPomFile, "project.groupId")
-  let b:mvnArtifactId = s:getParam(b:mvnPomFile, "project.artifactId")
-  let b:mvnVersion = s:getParam(b:mvnPomFile, "project.version")
-  let b:mvnSourceDirectory = substitute(s:getParam(b:mvnPomFile, "project.build.sourceDirectory"), b:mvnPomDirectory . "/", "", "")
-  let b:mvnTestSourceDirectory = substitute(s:getParam(b:mvnPomFile, "project.build.testSourceDirectory"), b:mvnPomDirectory . "/", "", "")
+  let b:cacheFilename = s:cacheFileNameFor(b:mvnPomDirectory)
+  let b:cacheFilepath = g:javamaven_cache . "/" . b:cacheFilename
+  if (filereadable(b:cacheFilepath))
+    call <SID>debug("[java-maven] [MvnSetup] cache file found (" . b:cacheFilepath . "). Sourcing properties from it...")
+    source b:cacheFilepath
+  else
+    call <SID>debug("[java-maven] [MvnSetup] unable to find cache file (" . b:cacheFilepath . "). Collecting all properties and generating them...")
+    let tmp = system("mvn help:effective-pom -Doutput=/tmp/pom-temp.xml")
+    let b:mvnSourceDirectory = system("xmllint -xpath '//project/build/sourceDirectory/text()' /tmp/pom-temp2.xml")
+    let b:mvnTestSourceDirectory = system("xmllint -xpath '//project/build/testSourceDirectory/text()' /tmp/pom-temp2.xml")
+
+    " Configure javacomplete.vim
+    let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
+    let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
+
+    writefile("let b:mvnPomDirectory = \"" . b:mvnPomDirectory . "\"", b:cacheFilepath, "a")
+    writefile("let b:mvnPomFile = \"" . b:mvnPomFile . "\"", b:cacheFilepath, "a")
+    writefile("let b:mvnSourceDirectory = \"" . b:mvnSourceDirectory . "\"", b:cacheFilepath, "a")
+    writefile("let b:mvnTestSourceDirectory = \"" . b:mvnTestSourceDirectory . "\"", b:cacheFilepath, "a")
+    writefile("let b:classpath = \"" . b:classpath . "\"", b:cacheFilepath, "a")
+  endif
+
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnGroupId ..............: " . b:mvnGroupId)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnArtifactId ...........: " . b:mvnArtifactId)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnVersion ..............: " . b:mvnVersion)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
-
-  " Configure javacomplete.vim
-  let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
+  call <SID>debug("[java-maven] [MvnSetup] b:classpath ...............: " . b:classpath)
 
   " Configure alternate.vim plugin
   let b:alternate_source_dirs = b:mvnSourceDirectory
@@ -153,16 +163,9 @@ endfunction
 "       file is more recent than the POM, the cached content is still valid
 "       for every buffer
 function! <SID>MvnDependencyBuildClasspath(pomFile)
-  let projectID = <SID>evaluateProjectID(a:pomFile)
-  let classpath = <SID>cacheRead(g:javamaven_cache, projectID, "classpath", getftime(a:pomFile))
-  if empty(classpath)
-    let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
-    call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
-    let classpath = system(shellCommand)
-
-    call <SID>cacheWrite(g:javamaven_cache, projectID, "classpath", classpath)
-  endif
-
+  let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
+  call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
+  let classpath = system(shellCommand)
   return classpath
 endfunction
 
@@ -267,10 +270,15 @@ function! s:getParam(xmlFile, param, ...)
   return value
 endfunction
 
-function! <SID>resolveCacheFileName(pomDirectory)
-    let projectDirName = fnamemodify(pomDirectory, ':t')
-    " TODO get git branch name
-    echo "Project Dir Name: " . projectDirName
+function! s:cacheFileNameFor(pomDir)
+  let projectDirName = fnamemodify(a:pomDir, ':t')
+  let branchName = "nobranch"
+  if isdirectory(a:pomDir . "/.git")
+    let branchName = system("git branch --show-current")
+  endif
+  let cacheFilename = projectDirName . "@" . branchName
+  call <SID>debug("[java-maven] [cacheFileNameFor] Project Dir Name: " . projectDirName . ", Branch: " . branchName . "; returning " . cacheFilename)
+  return cacheFilename
 endfunction
 
 
