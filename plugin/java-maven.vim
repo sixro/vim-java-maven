@@ -203,6 +203,13 @@ function! <SID>ExecMvnTest(testName)
 endfunction
 
 
+" --  cacheFileNameFor  --------------------------------------------------------
+" Returns a suitable cache filename for the specified pom directory.
+"
+" It consider not only the directory name containing the pom (assuming that
+" usually it is the project name), but it consider also (if present) the
+" git branch name. The reason of this is that it could be possible that
+" your deps change between different branches of the same project.
 function! s:cacheFileNameFor(pomDir)
   let projectDirName = fnamemodify(a:pomDir, ':t')
   let branchName = "nobranch"
@@ -214,6 +221,15 @@ function! s:cacheFileNameFor(pomDir)
   let cacheFilename = projectDirName . "_" . branchName
   call <SID>debug("[java-maven] [cacheFileNameFor] Project Dir Name: " . projectDirName . ", Branch: " . branchName . "; returning " . cacheFilename)
   return cacheFilename
+endfunction
+
+
+" --  javaCommand  -------------------------------------------------------------
+" Returns the java command that should be launched
+function! <SID>javaCommand(classpath, objectName)
+  let cmd = "java -cp \"" . a:classpath . "\" " . objectName
+  call <SID>debug("[java-maven] [javaCommand] returning '" . cmd . "'")
+  return cmd
 endfunction
 
 
