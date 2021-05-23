@@ -12,6 +12,7 @@ if !exists("g:javamaven_debug")
 endif
 if !exists("g:javamaven_cache")
   let g:javamaven_cache = $HOME . "/.cache/vim/javamaven"
+  
 endif
 
 
@@ -62,22 +63,45 @@ function! <SID>MvnSetup()
     return
   endif
 
-  let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
-  let b:mvnGroupId = s:getParam(b:mvnPomFile, "project.groupId")
-  let b:mvnArtifactId = s:getParam(b:mvnPomFile, "project.artifactId")
-  let b:mvnVersion = s:getParam(b:mvnPomFile, "project.version")
-  let b:mvnSourceDirectory = substitute(s:getParam(b:mvnPomFile, "project.build.sourceDirectory"), b:mvnPomDirectory . "/", "", "")
-  let b:mvnTestSourceDirectory = substitute(s:getParam(b:mvnPomFile, "project.build.testSourceDirectory"), b:mvnPomDirectory . "/", "", "")
+  " if a cache file exists, we sources it.
+  " Otherwise we need to collect information from the current pom and store
+  " them in the cache file
+  let b:cacheFilename = s:cacheFileNameFor(b:mvnPomDirectory)
+  let b:cacheFilepath = g:javamaven_cache . "/" . b:cacheFilename
+  if (filereadable(b:cacheFilepath))
+    call <SID>debug("[java-maven] [MvnSetup] cache file found (" . b:cacheFilepath . "). Sourcing properties from it...")
+    execute 'source ' . fnameescape(b:cacheFilepath)
+  else
+    call <SID>debug("[java-maven] [MvnSetup] unable to find cache file (" . b:cacheFilepath . "). Collecting all properties and generating them...")
+    let tmp = system("mvn help:effective-pom -Doutput=/tmp/pom-temp.xml")
+    let b:mvnSourceDirectory = system("xmllint -xpath '//project/build/sourceDirectory/text()' /tmp/pom-temp2.xml")
+    let b:mvnSourceDirectory = substitute(b:mvnSourceDirectory, b:mvnPomDirectory . "/", "", "")
+    " Remove annoying ^@ character at the end
+    let b:mvnSourceDirectory = substitute(b:mvnSourceDirectory, ".$", "", "")
+    let b:mvnTestSourceDirectory = system("xmllint -xpath '//project/build/testSourceDirectory/text()' /tmp/pom-temp2.xml")
+    let b:mvnTestSourceDirectory = substitute(b:mvnTestSourceDirectory, b:mvnPomDirectory . "/", "", "")
+    " Remove annoying ^@ character at the end
+    let b:mvnTestSourceDirectory = substitute(b:mvnTestSourceDirectory, ".$", "", "")
+
+    " Configure javacomplete.vim
+    let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
+    let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
+
+    if ! isdirectory(g:javamaven_cache)
+      call mkdir(g:javamaven_cache, "p")
+    endif
+    call writefile([ "let b:mvnPomDirectory = \"" . b:mvnPomDirectory . "\"" ], b:cacheFilepath, "a")
+    call writefile([ "let b:mvnPomFile = \"" . b:mvnPomFile . "\"" ], b:cacheFilepath, "a")
+    call writefile([ "let b:mvnSourceDirectory = \"" . b:mvnSourceDirectory . "\"" ], b:cacheFilepath, "a")
+    call writefile([ "let b:mvnTestSourceDirectory = \"" . b:mvnTestSourceDirectory . "\"" ], b:cacheFilepath, "a")
+    call writefile([ "let b:classpath = \"" . b:classpath . "\"" ], b:cacheFilepath, "a")
+  endif
+
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomDirectory .........: " . b:mvnPomDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnPomFile ..............: " . b:mvnPomFile)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnGroupId ..............: " . b:mvnGroupId)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnArtifactId ...........: " . b:mvnArtifactId)
-  call <SID>debug("[java-maven] [MvnSetup] b:mvnVersion ..............: " . b:mvnVersion)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnSourceDirectory ......: " . b:mvnSourceDirectory)
   call <SID>debug("[java-maven] [MvnSetup] b:mvnTestSourceDirectory ..: " . b:mvnTestSourceDirectory)
-
-  " Configure javacomplete.vim
-  let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
+  call <SID>debug("[java-maven] [MvnSetup] b:classpath ...............: " . b:classpath)
 
   " Configure alternate.vim plugin
   let b:alternate_source_dirs = b:mvnSourceDirectory
@@ -147,21 +171,11 @@ endfunction
 " Returns the build classpath of specified Maven POM.
 " 
 " Internally it calls the dependency maven plugin with option build-classpath.
-" FIXME It needs to use a caching system. E.g. Put the classpath in a file
-"       in .cache/vim using the groupId-artifactId of the POM. If the caching
-"       file is more recent than the POM, the cached content is still valid
-"       for every buffer
 function! <SID>MvnDependencyBuildClasspath(pomFile)
-  let projectID = <SID>evaluateProjectID(a:pomFile)
-  let classpath = <SID>cacheRead(g:javamaven_cache, projectID, "classpath", getftime(a:pomFile))
-  if empty(classpath)
-    let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
-    call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
-    let classpath = system(shellCommand)
-
-    call <SID>cacheWrite(g:javamaven_cache, projectID, "classpath", classpath)
-  endif
-
+  let shellCommand = <SID>mvnCommand(a:pomFile) . " dependency:build-classpath | grep -v '^\\[INFO'"
+  call <SID>debug("[java-maven] [MvnDependencyBuildClasspath] executing " . shellCommand)
+  let classpath = system(shellCommand)
+  let classpath = substitute(classpath, ".$", "", "")
   return classpath
 endfunction
 
@@ -188,82 +202,18 @@ function! <SID>ExecMvnTest(testName)
   execute ":Mvn " . commandParams
 endfunction
 
-" --  evaluateProjectID  -------------------------------------------------------
-" Returns the projectID of specified POM
-"
-" Internally it gets groupId, artifactId and version and joins them with '-'.
-" E.g.
-"     <groupId>github</groupId>
-"     <artifactId>myproj</artifactId>
-"     <version>1.0.0-SNAPSHOT</version>
-"  becomes:
-"     github-myproj-1.0.0-SNAPSHOT
-" I was in doubt to use also the version, but if you are working on multiple
-" branches, probably the unique way to know it is the different version...
-function! <SID>evaluateProjectID(pomFile)
-  let mvnGroupId = s:getParam(b:mvnPomFile, "project.groupId")
-  let mvnArtifactId = s:getParam(b:mvnPomFile, "project.artifactId")
-  let mvnVersion = s:getParam(b:mvnPomFile, "project.version")
-  return join([ mvnGroupId, mvnArtifactId, mvnVersion ], '.')
-endfunction
 
-" --  cacheRead  ---------------------------------------------------------------
-" Returns specified property from cache of specified projectID
-"
-" It uses file to contains property value, so we can use filesystem to check
-" update datetime and check the validity with specified timestampOfSource
-function! <SID>cacheRead(cacheDirectory, projectID, property, timestampOfSource)
-  let cacheFile = a:cacheDirectory . "/" . a:projectID . "/" . a:property
-  call <SID>debug("[java-maven] [cacheRead] cacheFile = " . cacheFile)
-  if !filereadable(cacheFile)
-    call <SID>debug("[java-maven] [cacheRead] not found or not readable")
-    return ""
+function! s:cacheFileNameFor(pomDir)
+  let projectDirName = fnamemodify(a:pomDir, ':t')
+  let branchName = "nobranch"
+  if isdirectory(a:pomDir . "/.git")
+    let branchName = system("git branch --show-current --no-color")
+    " Remove annoying ^@ at the end
+    let branchName = substitute(branchName, ".$", "", "")
   endif
-  " Check if the cache file is older than source...
-  if (getftime(cacheFile) < a:timestampOfSource)
-    call <SID>debug("[java-maven] [cacheRead] too old")
-    return ""
-  endif
-
-  let cachedValue = join(readfile(cacheFile), "")
-  call <SID>debug("[java-maven] [cacheRead] returning '" . cachedValue . "'")
-  return cachedValue
-endfunction
-
-
-" --  cacheWrite  --------------------------------------------------------------
-" Write specified property value in cache of specified projectID
-function! <SID>cacheWrite(cacheDirectory, projectID, property, value)
-  let cacheFileParent = a:cacheDirectory . "/" . a:projectID
-  if ! isdirectory(cacheFileParent)
-    call mkdir(cacheFileParent, "p")
-  endif
-
-  let cacheFile = cacheFileParent . "/" . a:property
-  call <SID>debug("[java-maven] [cacheWrite] cacheFile = " . cacheFile)
-
-  call writefile([ a:value ], cacheFile)
-  call <SID>debug("[java-maven] [cacheWrite] value '" . a:value . "' cached in " . cacheFile)
-endfunction
-
-
-" --  getParam  ----------------------------------------------------------------
-" Retrieve a specific parameter from pom.xml using the maven-help-plugin.
-"
-" Accept 1 additional parameters:
-"    * 3rd parameter ...: the default value to return when no value is found
-function! s:getParam(xmlFile, param, ...)
-  call <SID>debug("[java-maven] [getParam] Retrieving param '" . a:param . "' from POM file " . a:xmlFile)
-  let shellCommand = "mvn help:evaluate -Dexpression=" . a:param . " -q -DforceStdout"
-  call <SID>debug("[java-maven] [getParam] executing command '" . shellCommand . "' ...")
-  let value = system(shellCommand)
-
-  if value =~ "^null object or invalid expression" && a:0 > 1
-    let value = a:2
-  endif
-
-  call <SID>debug("[java-maven] [getParam] returning '" . value . "'")
-  return value
+  let cacheFilename = projectDirName . "_" . branchName
+  call <SID>debug("[java-maven] [cacheFileNameFor] Project Dir Name: " . projectDirName . ", Branch: " . branchName . "; returning " . cacheFilename)
+  return cacheFilename
 endfunction
 
 

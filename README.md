@@ -22,7 +22,7 @@ and because I don't know how to cache in a good way.
 
 ## <a name="req"></a>Requirements
 
-  * Java and Maven: it executes some commands using maven. For example, in order to understand
+  * `Java`, `Maven` and `xmllint`: it executes some commands using `maven`. For example, in order to understand
     the source and test directories and then configure the `alternate.vim` plugin
   * [alternate.vim](https://github.com/compactcode/alternate.vim): setup alternate commands
   * [open.vim](https://github.com/compactcode/open.vim): setup commands to open alternate, etc...
@@ -39,7 +39,6 @@ and because I don't know how to cache in a good way.
 
 ## <a name="todo"></a>Todo
 
-  * Cache important variables for every buffer under the same `pom.xml`
   * Try to read the java version configured in pom.xml
   * `gf` opening also Java files
   * add also `Javac`, `Java` command using the configured `classpath`: this could be handy 
