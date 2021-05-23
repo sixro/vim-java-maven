@@ -39,6 +39,7 @@ and because I don't know how to cache in a good way.
 
 ## <a name="todo"></a>Todo
 
+  * Reload cache if `pom.xml` is more recent
   * Try to read the java version configured in pom.xml
   * `gf` opening also Java files
   * add also `Javac`, `Java` command using the configured `classpath`: this could be handy 
