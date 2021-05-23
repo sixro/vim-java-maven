@@ -36,6 +36,7 @@ inoremap <buffer> <C-S-Space> <C-X><C-U><C-P>
 "
 command! -nargs=* Mvn call <SID>Mvn(<f-args>)
 command! MvnTest call <SID>MvnTest()
+command! MvnTmp call <SID>resolveCacheFileName()
 
 " --  alternate.vim  -----------------------------------------------------------
 " Require open.vim plugin too
@@ -264,6 +265,12 @@ function! s:getParam(xmlFile, param, ...)
 
   call <SID>debug("[java-maven] [getParam] returning '" . value . "'")
   return value
+endfunction
+
+function! <SID>resolveCacheFileName(pomDirectory)
+    let projectDirName = fnamemodify(pomDirectory, ':t')
+    " TODO get git branch name
+    echo "Project Dir Name: " . projectDirName
 endfunction
 
 
