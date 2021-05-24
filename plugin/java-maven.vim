@@ -51,6 +51,8 @@ inoremap <buffer> <C-S-Space> <C-X><C-U><C-P>
 "
 command! -nargs=* Mvn call <SID>Mvn(<f-args>)
 command! MvnTest call <SID>MvnTest()
+command! Javac call system("!javac -cp " . b:classpath . " -d " . b:mvnOutputDirectory . " " . @%)
+command! Java call system("!java -cp " . b:classpath . " " . %<)
 
 " --  alternate.vim  -----------------------------------------------------------
 " Require open.vim plugin too

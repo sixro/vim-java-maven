@@ -43,9 +43,11 @@ something (DISCLAIMER: probably I made it wrong :D).
 
 ## <a name="todo"></a>Todo
 
+  * Check if `vim-javacomplete2` is installed and setup the properties accordingly (works only with JDK 1.8)
   * `gf` opening also Java files: it works, but I need to create a custom function to avoid
     vim prioritize directories over files
-  * Try to read the java version configured in pom.xml
+  * Try to read the java version configured in pom.xml in order to check if the JDK is correct
+    or (for example) to fail if the software requires a JDK with v > 1.8
   * add also `Javac`, `Java` command using the configured `classpath`: this could be handy 
     to speed up test execution and lint verification
   * `:autocmd BufNewFile  *.java   0r ~/vim/skeleton.java` should create a file buffer having
