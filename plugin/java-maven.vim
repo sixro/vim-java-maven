@@ -252,15 +252,6 @@ endfunction
 
 
 " --  javaCommand  -------------------------------------------------------------
-" Returns the javac command that should be launched
-function! <SID>javaCommand(classpath, objectName)
-  let cmd = "java -cp \"" . a:classpath . "\" " . objectName
-  call <SID>debug("[java-maven] [javaCommand] returning '" . cmd . "'")
-  return cmd
-endfunction
-
-
-" --  javaCommand  -------------------------------------------------------------
 " Returns the java command that should be launched
 function! <SID>javaCommand(classpath, objectName)
   let cmd = "java -cp \"" . a:classpath . "\" " . a:objectName
