@@ -5,7 +5,7 @@
 
   * [Introduction](#intro)
   * [Requirements](#req)
-  * [Functions](#functions)
+  * [What is does](#what-it-does)
   * [Todo](#todo)
 
 
@@ -22,19 +22,23 @@ and because I don't know how to cache in a good way.
 
 ## <a name="req"></a>Requirements
 
-  * `Java`, `Maven` and `xmllint`: it executes some commands using `maven`. For example, in order to understand
+  * `Java`, `Maven`, `sed` and `xmllint`: it executes some commands using `maven`. For example, in order to understand
     the source and test directories and then configure the `alternate.vim` plugin
+  * `ctags`: to generate tags (can be disabled defining `g:javamaven_skip_tags`)
   * [alternate.vim](https://github.com/compactcode/alternate.vim): setup alternate commands
   * [open.vim](https://github.com/compactcode/open.vim): setup commands to open alternate, etc...
 
 
-## <a name="functions"></a>Functions
+## <a name="what-it-does"></a>What is does
 
-  * `:A`: open in a new buffer the related test (the alternate)
-    * `:AV`: open it in a vertical window
-    * `:AS`: open it in a horizontal window
-  * `:MvnTest`: run the related test
-  * `:Mvn`: execute the command specified after it
+  * Allow code navigation using `Ctrl-]` (only if `ctags` is left enabled)
+  * Allow code navigation using `gf` (WARNING: I need to fix a bug happening when a directory has the same name of the java object)
+  * Provide the following commands:
+	  * `:A`: open in a new buffer the related test (the alternate)
+		* `:AV`: open it in a vertical window
+		* `:AS`: open it in a horizontal window
+	  * `:MvnTest`: run the related test
+	  * `:Mvn`: execute the command specified after it
 
 
 ## <a name="todo"></a>Todo
