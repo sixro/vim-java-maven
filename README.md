@@ -5,7 +5,7 @@
 
   * [Introduction](#intro)
   * [Requirements](#req)
-  * [What is does](#what-it-does)
+  * [What it does](#what-it-does)
   * [Todo](#todo)
 
 
@@ -29,7 +29,7 @@ and because I don't know how to cache in a good way.
   * [open.vim](https://github.com/compactcode/open.vim): setup commands to open alternate, etc...
 
 
-## <a name="what-it-does"></a>What is does
+## <a name="what-it-does"></a>What it does
 
   * Allow code navigation using `Ctrl-]` (only if `ctags` is left enabled)
   * Allow code navigation using `gf` (WARNING: I need to fix a bug happening when a directory has the same name of the java object)
