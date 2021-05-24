@@ -72,15 +72,16 @@ function! <SID>MvnSetup()
   " if a cache file exists, we sources it.
   " Otherwise we need to collect information from the current pom and store
   " them in the cache file
-  let b:cacheFilename = s:cacheFileNameFor(b:mvnPomDirectory)
-  let b:cacheFilepath = g:javamaven_cache . "/" . b:cacheFilename
+  let b:cacheFiledir = g:javamaven_cache . "/" . s:cacheFileDirFor(b:mvnPomDirectory)
+  let b:cacheFilename = "config.vim"
+  let b:cacheFilepath = b:cacheFiledir . "/" . b:cacheFilename
   if (filereadable(b:cacheFilepath))
     call <SID>debug("[java-maven] [MvnSetup] cache file found (" . b:cacheFilepath . "). Sourcing properties from it...")
     execute 'source ' . fnameescape(b:cacheFilepath)
   else
     call <SID>debug("[java-maven] [MvnSetup] unable to find cache file (" . b:cacheFilepath . "). Collecting all properties and generating them...")
-    let tmp = system("mvn help:effective-pom -Doutput=/tmp/pom-temp.xml")
-    let tmp = system("sed 's/<project .*>/<project>/' /tmp/pom-temp.xml > /tmp/pom-temp2.xml")
+    call system("mvn help:effective-pom -Doutput=/tmp/pom-temp.xml")
+    call system("sed 's/<project .*>/<project>/' /tmp/pom-temp.xml > /tmp/pom-temp2.xml")
     let b:mvnSourceDirectory = system("xmllint -xpath '//project/build/sourceDirectory/text()' /tmp/pom-temp2.xml")
     let b:mvnSourceDirectory = <SID>asLocal(b:mvnSourceDirectory, b:mvnPomDirectory)
     let b:mvnTestSourceDirectory = system("xmllint -xpath '//project/build/testSourceDirectory/text()' /tmp/pom-temp2.xml")
@@ -93,8 +94,8 @@ function! <SID>MvnSetup()
     let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
     let b:classpath = b:classpath . ":" . b:mvnOutputDirectory
 
-    if ! isdirectory(g:javamaven_cache)
-      call mkdir(g:javamaven_cache, "p")
+    if ! isdirectory(b:cacheFiledir)
+      call mkdir(b:cacheFiledir, "p")
     endif
     call writefile([ "let b:mvnPomDirectory = \"" . b:mvnPomDirectory . "\"" ], b:cacheFilepath, "a")
     call writefile([ "let b:mvnPomFile = \"" . b:mvnPomFile . "\"" ], b:cacheFilepath, "a")
@@ -122,6 +123,15 @@ function! <SID>MvnSetup()
   execute "set path=" . b:mvnSourceDirectory . "/**," . b:mvnTestSourceDirectory . "/**"
   set suffixes=.java,.properties,*.yml,*.jsp,*.css,*.html
 
+  " Generate ctags enabling code navigation using Ctrl-] too
+  if !exists("g:javamaven_skip_tags")
+    let b:tagFile = b:cacheFiledir . "/tags"
+    call system("ctags -f " . b:tagFile . " --tag-relative=yes -R " . b:mvnSourceDirectory)
+    call system("ctags -a -f " . b:tagFile . " --tag-relative=yes -R " . b:mvnTestSourceDirectory)
+    silent execute "set tags+=" . b:tagFile
+  endif
+
+  "EXPERIMENTS
   " CompilerSet makeprg="javac -c " . b:classpath . " -d " . b:mvnOutputDirectory . " @%" 
 endfunction
 
@@ -217,14 +227,14 @@ function! <SID>ExecMvnTest(testName)
 endfunction
 
 
-" --  cacheFileNameFor  --------------------------------------------------------
+" --  cacheFileDirFor  --------------------------------------------------------
 " Returns a suitable cache filename for the specified pom directory.
 "
 " It consider not only the directory name containing the pom (assuming that
 " usually it is the project name), but it consider also (if present) the
 " git branch name. The reason of this is that it could be possible that
 " your deps change between different branches of the same project.
-function! s:cacheFileNameFor(pomDir)
+function! s:cacheFileDirFor(pomDir)
   let projectDirName = fnamemodify(a:pomDir, ':t')
   let branchName = "nobranch"
   if isdirectory(a:pomDir . "/.git")
@@ -233,7 +243,7 @@ function! s:cacheFileNameFor(pomDir)
     let branchName = substitute(branchName, ".$", "", "")
   endif
   let cacheFilename = projectDirName . "_" . branchName
-  call <SID>debug("[java-maven] [cacheFileNameFor] Project Dir Name: " . projectDirName . ", Branch: " . branchName . "; returning " . cacheFilename)
+  call <SID>debug("[java-maven] [cacheFileDirFor] Project Dir Name: " . projectDirName . ", Branch: " . branchName . "; returning " . cacheFilename)
   return cacheFilename
 endfunction
 
