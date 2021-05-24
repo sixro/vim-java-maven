@@ -119,7 +119,7 @@ function! <SID>MvnSetup()
   let b:alternate_enabled = 1
 
   " Setup searches (gf, [I, ...)
-  execute "set path=" . b:mvnSourceDirectory . "/**"
+  execute "set path=" . b:mvnSourceDirectory . "/**," . b:mvnTestSourceDirectory . "/**"
   set suffixes=.java,.properties,*.yml,*.jsp,*.css,*.html
 endfunction
 
