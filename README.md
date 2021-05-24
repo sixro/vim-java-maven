@@ -49,3 +49,4 @@ something (DISCLAIMER: probably I made it wrong :D).
     to speed up test execution and lint verification
   * `:autocmd BufNewFile  *.java   0r ~/vim/skeleton.java` should create a file buffer having
     the package name correctly setup for the current directory in relation to the base pom root
+  * configure abbreviations such as `sout` for `System.out.println`

@@ -27,12 +27,20 @@ au FileType java set mps+==:;
 " --  javacomplete  ------------------------------------------------------------
 autocmd Filetype java setlocal omnifunc=javacomplete#Complete 
 autocmd Filetype java setlocal completefunc=javacomplete#CompleteParamsInfo 
+"set complete=i,],.,b,w,t,k,.
 
 " Configure make in vim
 autocmd Filetype java set makeprg="!javac -cp ".b:classpath." -d  ".b:mvnOutputDirectory." ".@%
 
 
 " ==  Mappings  ================================================================
+
+" --  Search  ------------------------------------------------------------------
+" C-] works better than gf at the moment thanks to tags. So for now I mapped
+" gf to do the same thing
+nmap gf <C-]>
+" Goto-Class: go to the class of the underline variable...
+nmap gc gdbgf
 
 " --  javacomplete  ------------------------------------------------------------
 inoremap <buffer> <C-X><C-U> <C-X><C-U><C-P>
