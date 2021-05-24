@@ -17,8 +17,6 @@ The reason is that I cannot have the same experience I have at the moment with o
 Anyway I leave it here as a learning process for someone who wants to understand how I made 
 something (DISCLAIMER: probably I made it wrong :D).
 
-**WARNING**: it is slow, because it needs to execute some commands to retrieve data from `pom.xml`
-and because I don't know how to cache in a good way.
 
 ## <a name="req"></a>Requirements
 
