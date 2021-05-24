@@ -31,6 +31,7 @@ something (DISCLAIMER: probably I made it wrong :D).
 
   * Allow code navigation using `Ctrl-]` (only if `ctags` is left enabled)
   * Allow code navigation using `gf` (WARNING: I need to fix a bug happening when a directory has the same name of the java object)
+  * Caches project data so that the 2nd time you open a file it is very fast. It re-generates project data if the `pom.xml` is updated
   * Provide the following commands:
 	  * `:A`: open in a new buffer the related test (the alternate)
 		* `:AV`: open it in a vertical window
