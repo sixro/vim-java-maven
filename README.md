@@ -41,7 +41,6 @@ something (DISCLAIMER: probably I made it wrong :D).
 
 ## <a name="todo"></a>Todo
 
-  * Reload cache if `pom.xml` is more recent
   * `gf` opening also Java files: it works, but I need to create a custom function to avoid
     vim prioritize directories over files
   * Try to read the java version configured in pom.xml

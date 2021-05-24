@@ -68,14 +68,15 @@ function! <SID>MvnSetup()
   if empty(b:mvnPomDirectory)
     return
   endif
+  let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
 
-  " if a cache file exists, we sources it.
-  " Otherwise we need to collect information from the current pom and store
-  " them in the cache file
   let b:cacheFiledir = g:javamaven_cache . "/" . s:cacheFileDirFor(b:mvnPomDirectory)
   let b:cacheFilename = "config.vim"
   let b:cacheFilepath = b:cacheFiledir . "/" . b:cacheFilename
-  if (filereadable(b:cacheFilepath))
+  " if a cache file exists and it is more recent than the pom.xml we sources it.
+  " Otherwise we need to collect information from the current pom and store
+  " them in the cache file
+  if filereadable(b:cacheFilepath) && getftime(b:cacheFilepath) > getftime(b:mvnPomFile)
     call <SID>debug("[java-maven] [MvnSetup] cache file found (" . b:cacheFilepath . "). Sourcing properties from it...")
     execute 'source ' . fnameescape(b:cacheFilepath)
   else
@@ -90,7 +91,6 @@ function! <SID>MvnSetup()
     let b:mvnOutputDirectory = <SID>asLocal(b:mvnOutputDirectory, b:mvnPomDirectory)
 
     " Configure javacomplete.vim
-    let b:mvnPomFile = b:mvnPomDirectory . "/pom.xml"
     let b:classpath = <SID>MvnDependencyBuildClasspath(b:mvnPomFile)
     let b:classpath = b:classpath . ":" . b:mvnOutputDirectory
 
