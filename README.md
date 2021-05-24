@@ -40,8 +40,9 @@ and because I don't know how to cache in a good way.
 ## <a name="todo"></a>Todo
 
   * Reload cache if `pom.xml` is more recent
+  * `gf` opening also Java files: it works, but I need to create a custom function to avoid
+    vim prioritize directories over files
   * Try to read the java version configured in pom.xml
-  * `gf` opening also Java files
   * add also `Javac`, `Java` command using the configured `classpath`: this could be handy 
     to speed up test execution and lint verification
   * `:autocmd BufNewFile  *.java   0r ~/vim/skeleton.java` should create a file buffer having

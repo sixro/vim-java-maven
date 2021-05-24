@@ -121,6 +121,8 @@ function! <SID>MvnSetup()
   " Setup searches (gf, [I, ...)
   execute "set path=" . b:mvnSourceDirectory . "/**," . b:mvnTestSourceDirectory . "/**"
   set suffixes=.java,.properties,*.yml,*.jsp,*.css,*.html
+
+  " CompilerSet makeprg="javac -c " . b:classpath . " -d " . b:mvnOutputDirectory . " @%" 
 endfunction
 
 " --  Mvn  ---------------------------------------------------------------------
