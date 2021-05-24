@@ -7,6 +7,7 @@
   * [Requirements](#req)
   * [What it does](#what-it-does)
   * [Todo](#todo)
+  * [Resources](#resources)
 
 
 ## <a name="intro"></a>Introduction
@@ -50,3 +51,8 @@ something (DISCLAIMER: probably I made it wrong :D).
   * `:autocmd BufNewFile  *.java   0r ~/vim/skeleton.java` should create a file buffer having
     the package name correctly setup for the current directory in relation to the base pom root
   * configure abbreviations such as `sout` for `System.out.println`
+
+
+## <a name="resources"></a>Resources
+
+  * [ophinity :: papers :: java and vim](http://everything101.sourceforge.net/docs/papers/java_and_vim.html): an article containing some tips & tricks with Java and vim
