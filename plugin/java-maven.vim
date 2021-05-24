@@ -25,6 +25,9 @@ autocmd filetype java :call <SID>MvnSetup()
 autocmd Filetype java setlocal omnifunc=javacomplete#Complete 
 autocmd Filetype java setlocal completefunc=javacomplete#CompleteParamsInfo 
 
+" Configure make in vim
+autocmd Filetype java set makeprg="!javac -cp ".b:classpath." -d  ".b:mvnOutputDirectory." ".@%
+
 
 " ==  Mappings  ================================================================
 
@@ -111,8 +114,6 @@ function! <SID>MvnSetup()
   let b:alternate_test_dirs = b:mvnTestSourceDirectory
   let b:alternate_enabled = 1
 
-  " Configure make in vim
-  "setlocal makeprg="!javac -cp " . b:classpath . " -d  " . b:mvnOutputDirectory . " " . @%
 endfunction
 
 " --  Mvn  ---------------------------------------------------------------------
