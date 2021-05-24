@@ -44,3 +44,5 @@ and because I don't know how to cache in a good way.
   * `gf` opening also Java files
   * add also `Javac`, `Java` command using the configured `classpath`: this could be handy 
     to speed up test execution and lint verification
+  * `:autocmd BufNewFile  *.java   0r ~/vim/skeleton.java` should create a file buffer having
+    the package name correctly setup for the current directory in relation to the base pom root

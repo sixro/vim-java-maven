@@ -12,7 +12,6 @@ if !exists("g:javamaven_debug")
 endif
 if !exists("g:javamaven_cache")
   let g:javamaven_cache = $HOME . "/.cache/vim/javamaven"
-  
 endif
 
 
@@ -20,6 +19,10 @@ endif
 "
 " Setup Maven when a java file is opened
 autocmd filetype java :call <SID>MvnSetup()
+
+" --  common vim  --------------------------------------------------------------
+" Improve % jumps
+au FileType java set mps+==:;
 
 " --  javacomplete  ------------------------------------------------------------
 autocmd Filetype java setlocal omnifunc=javacomplete#Complete 
@@ -77,6 +80,7 @@ function! <SID>MvnSetup()
   else
     call <SID>debug("[java-maven] [MvnSetup] unable to find cache file (" . b:cacheFilepath . "). Collecting all properties and generating them...")
     let tmp = system("mvn help:effective-pom -Doutput=/tmp/pom-temp.xml")
+    let tmp = system("sed 's/<project .*>/<project>/' /tmp/pom-temp.xml > /tmp/pom-temp2.xml")
     let b:mvnSourceDirectory = system("xmllint -xpath '//project/build/sourceDirectory/text()' /tmp/pom-temp2.xml")
     let b:mvnSourceDirectory = <SID>asLocal(b:mvnSourceDirectory, b:mvnPomDirectory)
     let b:mvnTestSourceDirectory = system("xmllint -xpath '//project/build/testSourceDirectory/text()' /tmp/pom-temp2.xml")
@@ -114,6 +118,9 @@ function! <SID>MvnSetup()
   let b:alternate_test_dirs = b:mvnTestSourceDirectory
   let b:alternate_enabled = 1
 
+  " Setup searches (gf, [I, ...)
+  execute "set path=" . b:mvnSourceDirectory . "/**"
+  set suffixes=.java,.properties,*.yml,*.jsp,*.css,*.html
 endfunction
 
 " --  Mvn  ---------------------------------------------------------------------
