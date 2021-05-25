@@ -43,6 +43,9 @@ something (DISCLAIMER: probably I made it wrong :D).
 
 ## <a name="todo"></a>Todo
 
+  * Give error if the `JAVA_HOME` env variable is not set
+  * FIX BUG: if the dependency has to be downloaded the filtered rows read "Downloading etc..." and the b:classpath is broken.
+    You need then to remove the cached dir and rerun again the tool
   * Check if `vim-javacomplete2` is installed and setup the properties accordingly (works only with JDK 1.8)
   * `gf` opening also Java files: it works, but I need to create a custom function to avoid
     vim prioritize directories over files
