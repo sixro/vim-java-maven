@@ -137,8 +137,8 @@ function! <SID>MvnSetup()
   if !exists("g:javamaven_skip_tags")
     " Generate tags for both source and test directories
     let b:tagFile = b:cacheFiledir . "/tags"
-    call system("ctags -f " . b:tagFile . " -R " . b:mvnSourceDirectory)
-    call system("ctags -a -f " . b:tagFile . " -R " . b:mvnTestSourceDirectory)
+    call system("ctags -f " . b:tagFile . " --languages=java --exclude=.git -R " . b:mvnSourceDirectory)
+    call system("ctags -a -f " . b:tagFile . " --languages=java --exclude=.git -R " . b:mvnTestSourceDirectory)
     silent execute "set tags+=" . b:tagFile
     " Disable tagrelative so that file can be opened using Ctrl-]
     silent execute "set notagrelative"
